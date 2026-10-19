@@ -110,6 +110,47 @@ header.bar { display:flex; align-items:center; justify-content:space-between; fl
 .keycap.down { background:var(--primary); color:var(--bg); box-shadow:1px 1px 0 var(--shadow); transform:translate(3px,3px); }
 .keycap.down .cap-note { color:var(--bg); }
 
+/* ---------- 跟弹学习：每层一块板子（1:1 复刻硬件布局：4×2 键盘 + 旋钮 + 5 颗灯） ---------- */
+.learn-stack { display:flex; flex-direction:column; gap:18px; }
+.learn-board { background:var(--bg); border:3px solid var(--text); box-shadow:4px 4px 0 var(--shadow); padding:14px; }
+.lb-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+.lb-dot { width:16px; height:16px; border:3px solid var(--text); flex:none; }
+.lb-title { font-size:13px; font-weight:700; }
+.lb-meta { font-family:"Press Start 2P",monospace; font-size:8px; color:var(--secondary); margin-left:auto; }
+.lb-solo { font-size:11px; padding:5px 10px; }
+/* 板子本体：左边 4×2 键盘，右边旋钮 + 灯排 —— 和镜像台那块硬件同一套布局，缩小一号 */
+.lb-device { background:var(--light); border:3px solid var(--text); box-shadow:4px 4px 0 var(--shadow);
+  padding:14px; display:grid; grid-template-columns:1fr 150px; gap:16px; align-items:center; }
+.lb-pad { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.lb-pad .keycap { min-height:70px; padding:8px 2px; gap:4px; cursor:pointer; }
+.lb-pad .keycap .cap-name { font-size:12px; }
+.lb-pad .keycap .cap-note { font-size:8px; }
+.lb-pad .keycap:hover { background:var(--secondary); color:var(--bg); }
+.lb-pad .keycap:hover .cap-note { color:var(--bg); }
+.lb-side { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.lb-knob { width:104px; height:104px; background:var(--bg); border:3px solid var(--text); box-shadow:4px 4px 0 var(--shadow);
+  display:flex; align-items:center; justify-content:center; }
+.lb-knob svg { width:56px; height:56px; display:block; transition:transform .2s ease; }
+.lb-knob .ring { fill:var(--text); } .lb-knob .fill { fill:var(--secondary); } .lb-knob .mark { fill:var(--bg); }
+.lb-knob-label { font-size:11px; font-weight:700; }
+.lb-leds { display:flex; gap:6px; }
+.lb-leds i { width:15px; height:15px; border:3px solid var(--text); background:var(--bg); display:block; }
+/* 亮灯用 --c 传色：深浅色主题下都能靠自发光分辨 */
+.lb-leds i.lit { background:var(--c); box-shadow:0 0 0 1px var(--text) inset, 0 0 7px var(--c); }
+.lb-leds i.flash { animation:ledflash .4s steps(2) infinite; }
+.lb-leds i.blip { animation:ledblip .7s steps(2,jump-none); }
+.lb-foot { margin-top:8px; font-size:11px; color:var(--secondary); text-align:center; }
+@media (max-width:760px){
+  .lb-device { grid-template-columns:1fr; }
+  .lb-side { flex-direction:row; flex-wrap:wrap; justify-content:center; }
+}
+.learn-empty { padding:36px 20px; text-align:center; font-size:13px; color:var(--secondary); border:3px dashed var(--tick); }
+/* 硬件映射：给后面烧录联调对表用 */
+.hw-map { margin-top:16px; padding:10px 12px; background:var(--light); border:3px solid var(--text);
+  display:flex; flex-wrap:wrap; gap:6px 18px; align-items:center; font-size:11px; color:var(--text); }
+.hw-map .k { font-family:"Press Start 2P",monospace; font-size:8px; color:var(--bg); background:var(--text); padding:5px 7px; flex:none; white-space:nowrap; }
+.hw-map .v { color:var(--secondary); flex:none; }
+
 /* 旋钮 */
 .knob-col { display:flex; flex-direction:column; align-items:center; gap:12px; }
 .knob { width:160px; height:160px; background:var(--bg); border:3px solid var(--text); box-shadow:4px 4px 0 var(--shadow);
@@ -285,6 +326,7 @@ footer.note-line { margin-top:14px; font-size:11px; color:var(--text); }
 <!-- 标签页 -->
 <nav class="tabs" id="tabs">
   <div class="tab active" data-tab="mirror">镜像台</div>
+  <div class="tab" data-tab="learn">跟弹学习</div>
   <div class="tab" data-tab="viz">可视化</div>
   <div class="tab" data-tab="plan">规划路线</div>
 </nav>
@@ -334,6 +376,11 @@ const INSTRUMENTS = ["钢琴","风琴","合成器","贝斯","鼓"];
 const LED_VARS = ["var(--led1)","var(--led2)","var(--led3)","var(--led4)","var(--led5)"];
 // 乐器 → 灯色（与 5 颗 RGB 灯一一对应）：钢琴紫 / 风琴粉 / 合成器青 / 贝斯金 / 鼓绿
 const INST_LED = ["#7c5cff","#ff5c8a","#5cd0ff","#ffc85c","#8cff5c"];
+// 硬件旋钮外形的像素块（11×11 viewBox，环 + 芯 + 指针）。镜像台和学习板共用这一份，方便以后对齐烧录
+const KNOB_SVG_INNER =
+  '<g class="ring"><rect x="4" y="0" width="3" height="1"/><rect x="2" y="1" width="7" height="1"/><rect x="1" y="2" width="9" height="1"/><rect x="1" y="3" width="9" height="1"/><rect x="0" y="4" width="11" height="1"/><rect x="0" y="5" width="11" height="1"/><rect x="0" y="6" width="11" height="1"/><rect x="1" y="7" width="9" height="1"/><rect x="1" y="8" width="9" height="1"/><rect x="2" y="9" width="7" height="1"/><rect x="4" y="10" width="3" height="1"/></g>'
++ '<g class="fill"><rect x="4" y="2" width="3" height="1"/><rect x="3" y="3" width="5" height="1"/><rect x="2" y="4" width="7" height="1"/><rect x="2" y="5" width="7" height="1"/><rect x="2" y="6" width="7" height="1"/><rect x="3" y="7" width="5" height="1"/><rect x="4" y="8" width="3" height="1"/></g>'
++ '<g class="mark"><rect x="5" y="3" width="1" height="2"/></g>';
 
 /* ---- 写示例曲用的小工具（鼓组循环动辄上百个音符，手抄容易漏） ----
    beat(): 在 [from,to) 区间每隔 step 毫秒，在 rows 这几行上各放一个音符
@@ -548,17 +595,16 @@ function seedDemoSongs(){
 /* 当前编辑中的曲谱。row 对应 KEYS 下标(0..7, 顶=高音)，音符 = {row, t(ms按下), d(ms时长)} */
 let ROLL_SAMPLE = [];
 
-/* ---------- 首屏预览 loop ----------
+/* ---------- 示例 loop ----------
    打开就是空工作区太尴尬：评委 / 智能体进来第一眼该看到「这里有东西」，
-   点 ▶ 就能听。所以首屏自动铺一首内置曲里音符最密的
+   点 ▶ 就能听。所以每次打开只要工作区是空的，就铺一首内置曲里音符最密的
    「蓝调八小节 · 钢琴+贝斯+鼓」（12.8 秒 / 3 层，鼓层 200ms 一格，谱面够满）。
-   用户点过「全清」就写标记，之后不再自动预置，免得清不干净。 */
-function loadPreviewLoop(){
-  if(ROLL_SAMPLE.length) return;
-  try{ if(localStorage.getItem("easyloop_preview_cleared")==="1") return; }catch(e){}
+   注意：**不记忆「清空过」**——工作区本来就不持久化，刷新回来还是一片空白
+   只会让人以为页面坏了。要清就清，刷新照样给你示例。 */
+function fillDemoLoop(){
   const idx = DEMO_SONGS.findIndex(s=>s.name.indexOf("蓝调")===0);
   const src = DEMO_SONGS[idx>=0?idx:0];
-  if(!src) return;
+  if(!src) return false;
   ROLL_SAMPLE = src.layers.map(l=>({
     layer:l.layer, color:l.color, inst:l.inst,
     notes:l.notes.map(n=>({row:n.row, t:n.t, d:n.d}))
@@ -566,6 +612,22 @@ function loadPreviewLoop(){
   STATE.layers = ROLL_SAMPLE.length;
   STATE.muted = {};
   STATE.previewLoaded = true;
+  return true;
+}
+function loadPreviewLoop(){
+  if(ROLL_SAMPLE.length) return;
+  try{ localStorage.removeItem("easyloop_preview_cleared"); }catch(e){}   // 清掉旧版本留下的标记
+  fillDemoLoop();
+}
+/* 手动把示例 loop 铺回工作区（清空过、或换了设备/浏览器时用） */
+function loadDemoToWorkbench(){
+  if(!fillDemoLoop()) return;
+  STATE.playing = false; STATE.loopPos = 0;
+  try{ localStorage.removeItem("easyloop_preview_cleared"); }catch(e){}
+  seedDemoSongs();
+  refreshMirrorStatus();
+  zoomFit();
+  flash("已载入示例 loop（蓝调八小节 · 3 层），点 ▶ 播放试听");
 }
 
 const STATE = {
@@ -573,7 +635,7 @@ const STATE = {
   beat:0, beatTimer:null, vizMode:"spectrum", vizRAF:null, audio:null, analyser:null, specAnalyser:null, muted:{}, scoreView:"roll",
   recNotes:[], recStart:0, liveNotes:[], liveTimer:null,
   playing:false, loopPos:0, playTimer:null, activeNodes:[], loopMode:"loop",   // loopMode: "loop"=一直循环 / "once"=播一遍就停
-  zoom:140, rollScroll:0, held:{}   // zoom=每秒多少像素（剪映式时间轴缩放）；rollScroll=曲谱横向滚动位置；held=按住中的音
+  zoom:140, rollScroll:0, held:{}, soloLayer:null   // soloLayer: null=全部层 / 数字=只学这一层（其它层不画、不发声）   // zoom=每秒多少像素（剪映式时间轴缩放）；rollScroll=曲谱横向滚动位置；held=按住中的音
 };
 /* ---------- 时间轴模型（毫秒制，无限长） ----------
    音符 n = { row, t:距该层开始多少毫秒按下, d:按住多少毫秒（0=还按着） }
@@ -598,6 +660,13 @@ function playPosMs(){
     return STATE.loopMode==="loop" ? e % songDurMs() : Math.min(e, songDurMs());
   }
   return STATE.loopPos*1000;
+}
+/* 这一层现在是不是「不画谱、不发声」：
+   手动隐藏（muted）或者跟弹学习里只留一层（soloLayer）。谱面/播放/板子共用这一个判断。 */
+function layerHidden(idx){
+  if(STATE.muted[idx]) return true;
+  if(STATE.soloLayer!==null && STATE.soloLayer!==undefined && STATE.soloLayer!==idx) return true;
+  return false;
 }
 
 /* ---------------- 主题 ---------------- */
@@ -624,8 +693,184 @@ document.querySelectorAll(".tab").forEach(el=>{
 function renderMain(){
   const main = document.getElementById("main");
   if(STATE.tab==="mirror"){ main.innerHTML = renderMirror(); bindMirror(); }
+  else if(STATE.tab==="learn"){ main.innerHTML = renderLearn(); bindLearn(); animatePlayhead(); }
   else if(STATE.tab==="viz"){ main.innerHTML = renderViz(); bindViz(); }
   else { main.innerHTML = renderPlan(); }
+}
+
+/* ---------------- 界面：跟弹学习（每层一块板子） ---------------- */
+function renderLearn(){
+  const shown = ROLL_SAMPLE.filter(l=>!layerHidden(l.layer));
+  let soloBtns = '<button data-solo="all" class="'+(STATE.soloLayer===null?"on":"")+'">全部层</button>';
+  ROLL_SAMPLE.forEach(l=>{
+    soloBtns += '<button data-solo="'+l.layer+'" class="'+(STATE.soloLayer===l.layer?"on":"")+'">层 '+(l.layer+1)+' · '+INSTRUMENTS[l.inst]+'</button>';
+  });
+  const boards = shown.length
+    ? shown.map(l=>renderLearnBoard(l)).join("")
+    : '<div class="learn-empty">当前没有可显示的层。<br>点上面「全部层」，或回镜像台点「🎵 载入示例 loop」。</div>';
+  return ''
+  + '<section class="panel"><div class="toolbar"><div class="grow sec-label">LEARN · 跟弹学习</div>'
+  + '<div class="hint">播放时板子上的按键跟着曲子亮；每层一块板子，从上到下对应曲谱层级</div></div>'
+  + '<div class="seg" style="margin-bottom:12px">'
+  +   '<button id="lPlay" class="'+(STATE.playing?"on":"")+'">'+(STATE.playing?"⏸ 暂停":"▶ 播放")+'</button>'
+  +   '<button id="lStop">⏹ 停止</button>'
+  +   '<button id="lLoop">'+(STATE.loopMode==="loop"?"🔁 循环播放":"➡ 只播一次")+'</button></div>'
+  + '<div class="seg" id="soloSeg" style="margin-bottom:10px;flex-wrap:wrap">'+soloBtns+'</div>'
+  + '<div class="hint">点「层 N」= 只学这一层，其它层从谱面和声音里一起拿掉；再点一次恢复全部。空格 = 播放 / 暂停。</div>'
+  + '</section>'
+  + '<section class="panel"><div class="toolbar"><div class="grow sec-label">BOARDS · 每层一块板子</div>'
+  + '<div class="hint">'+(STATE.soloLayer===null?("共 "+shown.length+" 层"):("只显示层 "+(STATE.soloLayer+1)))+'</div></div>'
+  + '<div class="learn-stack">'+boards+'</div>'
+  + '<div class="hw-map"><span class="k">HARDWARE MAP</span>'
+  +   '<span class="v">S1–S8 → C D E F G A B C′（左→右、上→下）</span>'
+  +   '<span class="v">LED1–5 → 钢琴 / 风琴 / 合成器 / 贝斯 / 鼓</span>'
+  +   '<span class="v">旋钮角度 = 乐器序号 × 72°（5 档）</span></div>'
+  + '</section>';
+}
+
+/* 学习板 = 1:1 缩比复刻硬件 EasyInput V2.0：
+   左：4×2 键盘（S1–S8，丝印顺序和真板子一致）
+   右：旋钮（转到本层乐器）+ 5 颗 RGB 灯（只亮本层乐器那颗）
+   以后烧录联调时，屏幕上的板子和固件按同一套 S1–S8 / 灯位对齐 */
+function renderLearnBoard(l){
+  const keys = KEYS.map((k,i)=>
+    '<div class="keycap learn-key" data-layer="'+l.layer+'" data-row="'+i+'" data-pin="S'+(i+1)+'" data-inst="'+l.inst+'">'
+  + '<span class="cap-sw">S'+(i+1)+'</span><span class="cap-note">'+k.note+'</span><span class="cap-name">'+k.name+'</span></div>'
+  ).join("");
+  let leds = "";
+  for(let i=0;i<5;i++){
+    // 灯位固定 5 颗，只有这一层用到的乐器那颗亮（硬件行为：哪层录了哪种乐器，哪颗灯亮）
+    const tip = 'title="灯 '+(i+1)+' · '+INSTRUMENTS[i]+'"';
+    leds += (i===l.inst)
+      ? '<i class="lit" data-led="'+i+'" style="--c:'+INST_LED[i]+'" '+tip+'></i>'
+      : '<i data-led="'+i+'" '+tip+'></i>';
+  }
+  return '<div class="learn-board">'
+  + '<div class="lb-head"><span class="lb-dot" style="background:'+INST_LED[l.inst]+'"></span>'
+  +   '<span class="lb-title">层 '+(l.layer+1)+' · '+INSTRUMENTS[l.inst]+'</span>'
+  +   '<span class="lb-meta">'+l.notes.length+' NOTES</span>'
+  +   '<button class="btn ghost lb-solo" data-solo="'+l.layer+'">'+(STATE.soloLayer===l.layer?"显示全部":"只学这层")+'</button></div>'
+  + '<div class="lb-device">'
+  +   '<div class="lb-pad">'+keys+'</div>'
+  +   '<div class="lb-side">'
+  +     '<div class="lb-knob"><svg viewBox="0 0 11 11" shape-rendering="crispEdges" style="transform:rotate('+(l.inst*72)+'deg)">'+KNOB_SVG_INNER+'</svg></div>'
+  +     '<div class="lb-knob-label">乐器 '+INSTRUMENTS[l.inst]+'</div>'
+  +     '<div class="lb-leds" data-leds="'+l.layer+'">'+leds+'</div>'
+  +   '</div>'
+  + '</div>'
+  + '<div class="lb-foot">按键可点着试听本乐器 · 键位 S1–S8 与硬件丝印一致（后续烧录联调按这个映射对齐）</div>'
+  + '</div>';
+}
+
+function bindLearn(){
+  const p = document.getElementById("lPlay");
+  if(p) p.addEventListener("click", ()=>{ STATE.playing ? pausePlayback() : startPlayback(); });
+  const s = document.getElementById("lStop");
+  if(s) s.addEventListener("click", ()=> stopPlayback());
+  const lp = document.getElementById("lLoop");
+  if(lp) lp.addEventListener("click", ()=>{
+    STATE.loopMode = STATE.loopMode==="loop" ? "once" : "loop";
+    renderMain();
+    flash(STATE.loopMode==="loop" ? "循环播放：一直播到暂停" : "只播一次：曲末自动停");
+  });
+  document.querySelectorAll("#soloSeg button, .lb-solo").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const v = b.dataset.solo;
+      const next = (v==="all") ? null : +v;
+      setSoloLayer(next===STATE.soloLayer ? null : next);
+    });
+  });
+  // 学习板按键可点着试听：用这一层自己的乐器出声（不影响录制、不进曲谱）
+  document.querySelectorAll(".lb-pad .keycap").forEach(el=>{
+    const row = +el.dataset.row, inst = +el.dataset.inst;
+    el.addEventListener("pointerdown", (e)=>{
+      if(e.button!==undefined && e.button!==0) return;
+      el.dataset.pressed = "1";      // 单独记手动按下，别跟播放动画抢 .down
+      el.classList.add("down");
+      startHeld(row, inst);
+    });
+    const up = ()=>{
+      if(el.dataset.pressed!=="1") return;   // 没真的按下过就别乱收别人的音
+      delete el.dataset.pressed;
+      el.classList.remove("down");
+      stopHeld(row);
+    };
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointerleave", up);
+    el.addEventListener("pointercancel", up);
+    el.addEventListener("blur", up);
+  });
+}
+
+/* 只留一层：谱面、播放、板子三处同步 */
+function setSoloLayer(v){
+  STATE.soloLayer = v;
+  // 播放中切换要重排，否则刚拿掉的层这一遍还会响
+  if(STATE.playing){ killScheduledNodes(); scheduleNow(); }
+  renderMain();
+  flash(v===null ? "显示全部层" : ("只学层 "+(v+1)+"：其它层不显示、不发声"));
+}
+
+/* 播放时点亮板子：按播放头位置找当前正在响的音符 */
+function updateLearnKeys(){
+  // 没播放就全灭：playPosMs() 会停在 loopPos=0，会把 t≈0 的音误判成"正在响"，按键就卡在亮着
+  if(!STATE.playing){
+    document.querySelectorAll(".learn-key.down").forEach(el=>{
+      if(el.dataset.pressed==="1") return;    // 手指/鼠标还按着的别灭
+      el.classList.remove("down");
+    });
+    document.querySelectorAll(".lb-leds i.flash, .lb-leds i.blip").forEach(el=>el.classList.remove("flash","blip"));
+    return;
+  }
+  const ms = playPosMs();
+  const on = new Set();
+  // 某层此刻有没有音在响（用来驱动那颗 RGB 灯闪）
+  const sounding = {};
+  ROLL_SAMPLE.forEach(l=>{
+    if(layerHidden(l.layer)) return;
+    let hit = false;
+    (l.notes||[]).forEach(n=>{
+      const t = n.t||0, d = Math.max(90, n.d||300);
+      if(ms >= t-15 && ms <= t+d){ on.add(l.layer+":"+n.row); hit = true; }
+    });
+    if(hit) sounding[l.layer] = (l.inst===4) ? 4 : 1;   // 鼓层常闪，其它层 blip 一下
+  });
+  document.querySelectorAll(".learn-key").forEach(el=>{
+    el.classList.toggle("down", on.has(el.dataset.layer+":"+el.dataset.row) || el.dataset.pressed==="1");
+  });
+  // 灯：有音在响就闪（鼓闪得密一点），静下来恢复常亮
+  document.querySelectorAll(".lb-leds").forEach(box=>{
+    const li = +box.dataset.leds;
+    const layer = ROLL_SAMPLE.find(l=>l.layer===li);
+    if(!layer) return;
+    box.querySelectorAll("i").forEach(led=>{
+      const idx = +led.dataset.led;
+      if(idx!==layer.inst) return;
+      const active = !!sounding[li];
+      led.classList.toggle("flash", active && sounding[li]===4);
+      if(active){
+        if(!led.classList.contains("blip")) led.classList.add("blip");
+      } else {
+        led.classList.remove("blip");
+      }
+    });
+  });
+}
+/* 镜像台那块单板子也跟着亮（多层同键只亮一次） */
+function updateMirrorKeys(){
+  if(!STATE.playing) return;   // 没播放时把按键留给鼠标，别抢按下态
+  const ms = playPosMs();
+  const on = new Set();
+  ROLL_SAMPLE.forEach(l=>{
+    if(layerHidden(l.layer)) return;
+    (l.notes||[]).forEach(n=>{
+      const t = n.t||0, d = Math.max(90, n.d||300);
+      if(ms >= t-15 && ms <= t+d) on.add(n.row);
+    });
+  });
+  document.querySelectorAll("#keypad .keycap").forEach(el=>{
+    el.classList.toggle("down", on.has(+el.dataset.key));
+  });
 }
 
 /* ---------------- 界面一：镜像台 ---------------- */
@@ -656,7 +901,7 @@ function renderMirror(){
     layerStat += '<div class="stat-item"><div class="k">LAYER '+(STATE.layers)+'</div><div class="v" style="color:var(--text)">录制中</div></div>';
   }
   ROLL_SAMPLE.forEach(l=>{
-    const status = STATE.muted[l.layer] ? "已隐藏" : "播放中";
+    const status = layerHidden(l.layer) ? "已隐藏" : "播放中";
     layerStat += '<div class="stat-item"><div class="k">LAYER '+(l.layer+1)+'</div><div class="v" style="color:'+INST_LED[l.inst]+'">'+status+'</div></div>';
   });
   if(layerStat===""){
@@ -670,9 +915,7 @@ function renderMirror(){
   +   '<div class="device-sub">点击琴键=模拟硬件按下；<strong>单击旋钮=开始/停止录音，双击=下一乐器，三击=上一乐器</strong>，滚轮也可旋转切音色。录音时弹的音符会自动进入曲谱。</div>'
   +   '<div class="board"><div class="keypad" id="keypad">'+keys+'</div>'
   +   '<div class="knob-col"><div class="knob" id="knob"><svg id="knobSvg" viewBox="0 0 11 11" shape-rendering="crispEdges" style="transform:rotate('+(STATE.inst*72)+'deg)">'
-  +     '<g class="ring"><rect x="4" y="0" width="3" height="1"/><rect x="2" y="1" width="7" height="1"/><rect x="1" y="2" width="9" height="1"/><rect x="1" y="3" width="9" height="1"/><rect x="0" y="4" width="11" height="1"/><rect x="0" y="5" width="11" height="1"/><rect x="0" y="6" width="11" height="1"/><rect x="1" y="7" width="9" height="1"/><rect x="1" y="8" width="9" height="1"/><rect x="2" y="9" width="7" height="1"/><rect x="4" y="10" width="3" height="1"/></g>'
-  +     '<g class="fill"><rect x="4" y="2" width="3" height="1"/><rect x="3" y="3" width="5" height="1"/><rect x="2" y="4" width="7" height="1"/><rect x="2" y="5" width="7" height="1"/><rect x="2" y="6" width="7" height="1"/><rect x="3" y="7" width="5" height="1"/><rect x="4" y="8" width="3" height="1"/></g>'
-  +     '<g class="mark"><rect x="5" y="3" width="1" height="2"/></g></svg>'
+  +     KNOB_SVG_INNER+'</svg>'
   +           '<div class="knob-label" id="knobLabel">乐器 '+INSTRUMENTS[STATE.inst]+'</div></div>'
   +   '<div class="leds" id="leds">'+leds+'</div><div class="hint" style="text-align:center">5 颗 RGB 彩灯（每颗对应一种乐器）</div></div>'
   +   '</div></div>'
@@ -729,6 +972,9 @@ function renderMirror(){
 }
 function renderLayerSidebar(){
   let html = '<div class="side-title">LAYERS · 层管理</div>';
+  if(STATE.soloLayer!==null){
+    html += '<div class="hint" style="margin-bottom:8px">跟弹学习中：只显示层 '+(STATE.soloLayer+1)+'。去「跟弹学习」页可切回全部层。</div>';
+  }
   if(STATE.previewLoaded){
     html += '<div class="hint" style="margin-bottom:8px">当前是预置示例 loop（蓝调八小节）。点 ▶ 播放试听；点层 = 显示/隐藏；「全清」后从零开始录。</div>';
   } else if(ROLL_SAMPLE.length){
@@ -738,7 +984,8 @@ function renderLayerSidebar(){
     html += '<div class="layer-row" style="background:var(--text);color:var(--bg)"><span class="layer-dot" style="background:'+INST_LED[STATE.inst]+'"></span><span class="layer-name">层 '+(STATE.layers)+' · 录制中（'+INSTRUMENTS[STATE.inst]+'）</span></div>'
       + '<button class="btn ghost side-cancel" id="cancelRec">取消当前录制</button>';
   } else if(ROLL_SAMPLE.length===0){
-    html += '<div class="hint">暂无录制层<br>单击旋钮开始录音</div>';
+    html += '<div class="hint">暂无录制层<br>单击旋钮开始录音</div>'
+      + '<button class="btn ghost" id="loadDemoLayer" style="width:100%;margin-bottom:8px">🎵 载入示例 loop</button>';
   }
   ROLL_SAMPLE.forEach(l=>{
     const muted = !!STATE.muted[l.layer];
@@ -832,9 +1079,9 @@ function bindMirror(){
     // 曲都没了就别再让播放头空转、也别留半截已排程的声音
     if(STATE.playing){ STATE.playing=false; clearTimeout(STATE.playTimer); }
     killScheduledNodes();
-    try{ localStorage.setItem("easyloop_preview_cleared","1"); }catch(e){}
+    // 不写「清空过」标记：刷新后照样预置示例，否则再打开是一片空白，像坏了
     stopAllHeld();
-    refreshMirrorStatus(); flash("全部清空");
+    refreshMirrorStatus(); flash("全部清空（刷新页面会重新载入示例 loop）");
   });
   document.querySelectorAll("#modeSeg button").forEach(b=>{
     b.addEventListener("click", ()=>{
@@ -904,8 +1151,14 @@ function bindMirror(){
   const loadDemoBtn = document.getElementById("loadDemo");
   if(loadDemoBtn){
     loadDemoBtn.addEventListener("click", ()=>{
-      seedDemoSongs(); refreshSongsList(); flash("已载入示例曲（可在曲库里删除）");
+      // 曲库按钮：把示例曲塞进曲库，同时直接铺到工作区（不然点了没反应，像坏了）
+      loadDemoToWorkbench();
+      refreshSongsList();
     });
+  }
+  const loadDemoLayerBtn = document.getElementById("loadDemoLayer");
+  if(loadDemoLayerBtn){
+    loadDemoLayerBtn.addEventListener("click", loadDemoToWorkbench);
   }
   // 用事件委托，动态追加的示例曲也能点
   const songsList = document.getElementById("songsList");
@@ -926,11 +1179,11 @@ function bindMirror(){
     if(STATE.tab==="mirror" && (STATE.liveNotes.length || STATE.recording)) drawScore();
   }, 120);
 }
-/* 按住出声：按下起振，松开收音（拖尾音跟按住时长走） */
-function startHeld(i){
+/* 按住出声：按下起振，松开收音（拖尾音跟按住时长走）。instIdx 可指定乐器（学习板试听用层自己的乐器） */
+function startHeld(i, instIdx){
   initAudio();
   const ctx = STATE.audio;
-  const inst = INSTRUMENTS[STATE.inst];
+  const inst = INSTRUMENTS[instIdx===undefined||instIdx===null ? STATE.inst : instIdx];
   if(inst==="鼓"){ playTone(i); return; }   // 鼓是一声闷响，不做持续音
   let f = KEYS[i].freq, type="triangle", peak=0.35;
   if(inst==="贝斯"){ f=f/2; type="sawtooth"; peak=0.42; }
@@ -1202,7 +1455,7 @@ function scheduleNow(){
   const elapsed = (Date.now() - STATE.playStart)/1000;
   const loopStart = STATE.playStart/1000 + Math.floor(elapsed/loopDur)*loopDur - off;
   ROLL_SAMPLE.forEach(layer=>{
-    if(STATE.muted[layer.layer]) return;   // 隐藏的层不排程 → 不发声
+    if(layerHidden(layer.layer)) return;   // 隐藏的层不排程 → 不发声
     scheduleLayerNotes(layer, loopStart, now);
   });
 }
@@ -1340,7 +1593,7 @@ function drawRollHTML(){
   const leftOf = n => (34 + (n.t||0)/1000*zoom);
   const widthOf = n => Math.max(5, (n.d||90)/1000*zoom);
   ROLL_SAMPLE.forEach(layer=>{
-    if(STATE.muted[layer.layer]) return;
+    if(layerHidden(layer.layer)) return;
     const col = INST_LED[layer.inst];
     const vOff = (layer.layer%5)*2;
     layer.notes.forEach(n=>{
@@ -1453,7 +1706,7 @@ function drawStaffHTML(){
   for(let b=0;b<=4;b++){ const x = leftPad + b*(usable/4); svg += '<line class="barline" x1="'+x+'" y1="'+yOf(8)+'" x2="'+x+'" y2="'+yOf(0)+'"/>'; }
   // 音符
   ROLL_SAMPLE.forEach(layer=>{
-    if(STATE.muted[layer.layer]) return;
+    if(layerHidden(layer.layer)) return;
     const col = INST_LED[layer.inst];
     layer.notes.forEach(n=>{
       const p = pOf(n.row), y = yOf(p), x = leftPad + ((n.t||0)/1000/durSec)*usable + 8;
@@ -1492,7 +1745,7 @@ function drawJianpuHTML(){
   for(let b=0;b<=4;b++){ const x = leftPad + b*(usable/4);
     html += '<div class="'+(b===4?"barline":"beatline")+'" style="left:'+x+'px"></div>'; }
   ROLL_SAMPLE.forEach(layer=>{
-    if(STATE.muted[layer.layer]) return;
+    if(layerHidden(layer.layer)) return;
     const col = INST_LED[layer.inst];
     layer.notes.forEach(n=>{
       const idx = n.row;
@@ -1540,6 +1793,9 @@ let phTimer=null;
 function animatePlayhead(){
   if(phTimer) clearInterval(phTimer);
   const ph = ()=>{
+    // 跟弹学习页没有播放头，但要靠这个 30ms 循环点亮板子按键
+    if(STATE.tab==="learn") updateLearnKeys();
+    else if(STATE.tab==="mirror") updateMirrorKeys();
     const el = document.getElementById("playhead"); if(!el) return;
     const dur = songDurMs()/1000;
     if(el.classList.contains("roll-playhead")){

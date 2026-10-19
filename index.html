@@ -257,6 +257,14 @@ header.bar { display:flex; align-items:center; justify-content:space-between; fl
 .song-date { font-size:9px; color:var(--secondary); }
 .song-btn { font-family:"Press Start 2P",monospace; font-size:7px; padding:5px 8px; background:var(--bg); border:2px solid var(--text); cursor:pointer; }
 .song-btn:hover { background:var(--text); color:var(--bg); }
+/* 标星：★ = 已收藏的重点曲子 */
+.song-star { width:30px; height:30px; flex:none; display:flex; align-items:center; justify-content:center;
+  font-size:15px; line-height:1; padding:0; background:var(--bg); color:var(--secondary);
+  border:2px solid var(--text); cursor:pointer; }
+.song-star:hover { background:var(--light); color:var(--text); }
+.song-star.on { background:var(--primary); color:var(--bg); }
+.song-item.starred { border-color:var(--primary); box-shadow:3px 3px 0 var(--primary); }
+.song-item.starred .song-name { font-weight:700; }
 
 /* 可视化 */
 .viz-wrap { background:var(--text); border:3px solid var(--text); box-shadow:4px 4px 0 var(--shadow); padding:0; position:relative; }
@@ -963,7 +971,7 @@ function renderMirror(){
   + '<aside class="score-side" id="scoreSide">'+renderLayerSidebar()+'</aside></div></section>'
 
   + '<section class="panel"><div class="toolbar"><div class="grow sec-label">SONGS · 曲库</div>'
-  + '<div class="hint">收藏/加载/删除做好的 loop</div></div>'
+  + '<div class="hint">点 ☆ 标星（喜欢的排最前）· 加载 · 删除</div></div>'
   + '<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">'
   +   '<input type="text" class="song-input" id="songName" placeholder="给这首 loop 起个名">'
   +   '<button id="saveSong">收藏</button>'
@@ -999,12 +1007,25 @@ function renderLayerSidebar(){
 function renderSongsList(){
   const songs = getSongs();
   if(songs.length===0) return '<div class="hint">还没有收藏任何 loop，录好后在这里命名保存；也可点「🎵 载入示例曲」试试。</div>';
-  return songs.map((s,i)=>'<div class="song-item">'
+  const stars = getStars();
+  // 标星的排到最前（同组内保持原来的时间顺序），index 仍指回原数组，加载/删除不会错位
+  const rows = songs.map((s,i)=>({s,i}));
+  rows.sort((a,b)=>{
+    const sa = stars.indexOf(starKey(a.s))>=0 ? 1 : 0;
+    const sb = stars.indexOf(starKey(b.s))>=0 ? 1 : 0;
+    return sb - sa;
+  });
+  const starred = rows.filter(r=>stars.indexOf(starKey(r.s))>=0).length;
+  return (starred? '<div class="hint" style="margin-bottom:8px">★ '+starred+' 首标星曲子排在最前面</div>' : '')
+  + rows.map(r=>{
+    const s = r.s, i = r.i, on = stars.indexOf(starKey(s))>=0;
+    return '<div class="song-item'+(on?' starred':'')+'">'
+    + '<button class="song-star'+(on?' on':'')+'" data-star="'+i+'" title="'+(on?'取消标星':'标星（我觉得这首好）')+'">'+(on?'★':'☆')+'</button>'
     + '<span class="song-name">'+(s.name||"未命名")+(s.demo?' <span class="song-tag">示例</span>':'')+'</span>'
     + '<span class="song-date">'+new Date(s.savedAt).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})+'</span>'
     + '<button class="song-btn" data-load="'+i+'">加载</button>'
-    + '<button class="song-btn" data-del="'+i+'">删除</button></div>'
-  ).join("");
+    + '<button class="song-btn" data-del="'+i+'">删除</button></div>';
+  }).join("");
 }
 function refreshSongsList(){
   const el = document.getElementById("songsList");
@@ -1012,6 +1033,23 @@ function refreshSongsList(){
 }
 function getSongs(){
   try{ return JSON.parse(localStorage.getItem("easyloop_songs")||"[]"); }catch(e){ return []; }
+}
+/* ---- 标星：只是"我觉得这首好"的私人标记，不改曲库顺序也不动数据 ----
+   曲库里的歌没有 id，用「示例名」或「名字@保存时间」当稳定键；
+   示例曲按名字记，这样以后重新灌示例（savedAt 会变）星标也不会丢 */
+function starKey(s){
+  if(!s) return "";
+  return s.demo ? ("demo:"+(s.name||"")) : ((s.name||"未命名")+"@"+(s.savedAt||0));
+}
+function getStars(){
+  try{ return JSON.parse(localStorage.getItem("easyloop_stars")||"[]"); }catch(e){ return []; }
+}
+function isStarred(s){ return getStars().indexOf(starKey(s)) >= 0; }
+function toggleStar(s){
+  const arr = getStars(), k = starKey(s), i = arr.indexOf(k);
+  if(i>=0) arr.splice(i,1); else arr.push(k);
+  try{ localStorage.setItem("easyloop_stars", JSON.stringify(arr)); }catch(e){}
+  return i<0;   // true = 刚标上
 }
 function saveSong(name){
   const songs = getSongs();
@@ -1037,8 +1075,17 @@ function loadSong(i){
 }
 function deleteSong(i){
   const songs = getSongs();
-  if(songs[i]) songs.splice(i,1);
+  const gone = songs[i];
+  if(gone) songs.splice(i,1);
   try{ localStorage.setItem("easyloop_songs", JSON.stringify(songs)); }catch(e){}
+  // 顺带清掉这首的星标，别在本地留孤儿记录
+  if(gone){
+    const k = starKey(gone), stars = getStars(), j = stars.indexOf(k);
+    if(j>=0){
+      stars.splice(j,1);
+      try{ localStorage.setItem("easyloop_stars", JSON.stringify(stars)); }catch(e){}
+    }
+  }
 }
 function bindMirror(){
   if(STATE.liveTimer) clearInterval(STATE.liveTimer);
@@ -1164,8 +1211,18 @@ function bindMirror(){
   const songsList = document.getElementById("songsList");
   if(songsList){
     songsList.addEventListener("click", (e)=>{
+      const st = e.target.closest("[data-star]");
       const lb = e.target.closest("[data-load]");
       const db = e.target.closest("[data-del]");
+      if(st){
+        const song = getSongs()[+st.dataset.star];
+        if(song){
+          const on = toggleStar(song);
+          refreshSongsList();
+          flash(on ? ("已标星："+(song.name||"未命名")+"（下次排在最前）") : "已取消标星");
+        }
+        return;
+      }
       if(lb){ loadSong(+lb.dataset.load); }
       if(db){ deleteSong(+db.dataset.del); refreshSongsList(); flash("已删除"); }
     });
